@@ -6,8 +6,8 @@ from botocore.exceptions import ClientError
 import csv
 import io
 import json
-from datetime import datetime
-from typing import List, Dict
+from datetime import datetime, date, timedelta
+from typing import List, Dict, Optional
 
 app = FastAPI(
     title="IESO API",
@@ -89,11 +89,252 @@ async def test_s3():
     
     return result
 
+def get_actual_demand_from_training_dataset(target_date: Optional[date] = None) -> Dict[str, Optional[float]]:
+    """
+    Fetch actual demand values from the training dataset in S3.
+    Fetches from the specific file: training_dataset/combined_demand_2002_2025.csv
+    Uses the "Ontario Demand" column and filters for target date and previous day (to handle midnight crossover).
+    Returns a dictionary mapping hour strings (HH:MM) to actual demand values (or None if not available).
+    
+    Args:
+        target_date: The date to fetch data for (defaults to today)
+    
+    Returns:
+        Dictionary with hour as key and actual demand as value (or None if not available)
+    """
+    actual_demand_map = {}
+    
+    try:
+        # Use today's date if not specified
+        if target_date is None:
+            target_date = date.today()
+        
+        print(f"Fetching actual demand for date: {target_date}")
+        
+        # Fetch the specific CSV file from S3
+        file_key = "training_dataset/combined_demand_2002_2025.csv"
+        csv_data = s3_service.get_object(file_key)
+        
+        if csv_data is None:
+            print(f"Error: Could not fetch {file_key} from S3")
+            return actual_demand_map
+        
+        csv_string = csv_data.decode('utf-8')
+        csv_reader = csv.DictReader(io.StringIO(csv_string))
+        
+        # Get column names (case-insensitive matching)
+        fieldnames = csv_reader.fieldnames
+        if not fieldnames:
+            print("Error: CSV has no column headers")
+            return actual_demand_map
+        
+        print(f"CSV columns found: {fieldnames}")
+        
+        # Find Date column (case-insensitive)
+        date_col = None
+        for col in fieldnames:
+            col_lower = col.lower().strip()
+            if col_lower == 'date':
+                date_col = col
+                break
+        
+        # Find Hour column (case-insensitive)
+        hour_col = None
+        for col in fieldnames:
+            col_lower = col.lower().strip()
+            if col_lower == 'hour':
+                hour_col = col
+                break
+        
+        # Find demand column (case-insensitive, looking for "ontario demand")
+        demand_col = None
+        for col in fieldnames:
+            col_lower = col.lower().strip()
+            if 'ontario' in col_lower and 'demand' in col_lower:
+                demand_col = col
+                break
+        
+        if not date_col:
+            print(f"Error: Could not find 'Date' column. Available columns: {fieldnames}")
+            return actual_demand_map
+        
+        if not hour_col:
+            print(f"Error: Could not find 'Hour' column. Available columns: {fieldnames}")
+            return actual_demand_map
+        
+        if not demand_col:
+            print(f"Error: Could not find 'Ontario Demand' column. Available columns: {fieldnames}")
+            return actual_demand_map
+        
+        print(f"Using date column: '{date_col}', hour column: '{hour_col}', demand column: '{demand_col}'")
+        
+        rows_processed = 0
+        rows_matched = 0
+        sample_rows_logged = 0
+        date_mismatches = 0
+        date_matches = 0
+        
+        # Parse the CSV to extract actual demand values from "Ontario Demand" column
+        for row in csv_reader:
+            rows_processed += 1
+            
+            # Log first few rows for debugging
+            if sample_rows_logged < 3:
+                print(f"Sample row {sample_rows_logged + 1}: {dict(row)}")
+                sample_rows_logged += 1
+            
+            try:
+                date_str = row.get(date_col, '').strip()
+                hour_str = row.get(hour_col, '').strip()
+                
+                if not date_str or not hour_str:
+                    if rows_processed <= 5:
+                        print(f"Row {rows_processed}: Missing date or hour - date_str='{date_str}', hour_str='{hour_str}'")
+                    continue
+                
+                # Parse the date (format: "2002-05-01")
+                try:
+                    row_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+                except ValueError:
+                    # Try alternative date formats
+                    try:
+                        row_date = datetime.strptime(date_str, "%Y/%m/%d").date()
+                    except ValueError:
+                        if rows_processed <= 5:
+                            print(f"Row {rows_processed}: Could not parse date '{date_str}'")
+                        continue
+                
+                # Check if this row is for the target date
+                if row_date != target_date:
+                    date_mismatches += 1
+                    if rows_processed <= 5:
+                        print(f"Row {rows_processed}: Date mismatch - row_date={row_date}, target_date={target_date}")
+                    continue
+                
+                date_matches += 1
+                
+                # Parse the hour (format: 1-24)
+                # Note: Hour 1 in dataset = 00:00-01:00, so maps to "00:00"
+                #       Hour 2 in dataset = 01:00-02:00, so maps to "01:00"
+                #       Hour N maps to (N-1):00
+                try:
+                    hour_num = int(hour_str)
+                    if hour_num < 1 or hour_num > 24:
+                        print(f"Row {rows_processed}: Invalid hour number {hour_num}")
+                        continue
+                    # Convert to HH:MM format: hour 1 -> "00:00", hour 2 -> "01:00", etc.
+                    hour_formatted = f"{(hour_num - 1):02d}:00"
+                except (ValueError, TypeError) as e:
+                    print(f"Row {rows_processed}: Could not parse hour '{hour_str}': {e}")
+                    continue
+                
+                # Get demand value from "Ontario Demand" column
+                demand_str = row.get(demand_col, '').strip()
+                if not demand_str or demand_str.lower() in ['', 'na', 'n/a', 'null', 'none']:
+                    if rows_processed <= 5:
+                        print(f"Row {rows_processed}: Empty or invalid demand value '{demand_str}'")
+                    continue
+                
+                try:
+                    demand_value = float(demand_str)
+                except (ValueError, TypeError) as e:
+                    if rows_processed <= 5:
+                        print(f"Row {rows_processed}: Could not convert demand '{demand_str}' to float: {e}")
+                    continue
+                
+                # Store the actual demand value
+                actual_demand_map[hour_formatted] = round(demand_value)
+                rows_matched += 1
+                
+                if rows_matched <= 5:
+                    print(f"✓ Matched row {rows_processed}: date={row_date}, hour={hour_num} -> '{hour_formatted}', demand={demand_value}")
+                        
+            except Exception as e:
+                # Skip rows that can't be parsed
+                if rows_processed <= 10:
+                    print(f"Row {rows_processed}: Exception during parsing: {e}")
+                continue
+        
+        print(f"=" * 60)
+        print(f"ACTUAL DEMAND FETCH SUMMARY:")
+        print(f"  Target date: {target_date}")
+        print(f"  Total rows processed: {rows_processed}")
+        print(f"  Rows with matching date: {date_matches}")
+        print(f"  Rows with non-matching date: {date_mismatches}")
+        print(f"  Rows successfully matched and added: {rows_matched}")
+        print(f"  Hours with actual demand data: {len(actual_demand_map)}")
+        if actual_demand_map:
+            print(f"  Sample hours found: {sorted(list(actual_demand_map.keys()))[:10]}")
+            print(f"  Sample values: {[(k, actual_demand_map[k]) for k in sorted(list(actual_demand_map.keys()))[:5]]}")
+        else:
+            print(f"  WARNING: No actual demand data found for date {target_date}!")
+        print(f"=" * 60)
+        
+    except Exception as e:
+        # Log error but don't fail - return whatever we have
+        print(f"Error fetching actual demand from training dataset: {str(e)}")
+        import traceback
+        traceback.print_exc()
+    
+    return actual_demand_map
+
+@app.get("/api/test/actual-demand")
+async def test_actual_demand():
+    """
+    Test endpoint to debug actual demand fetching from training dataset.
+    Returns information about the CSV structure and sample data.
+    """
+    try:
+        file_key = "training_dataset/combined_demand_2002_2025.csv"
+        csv_data = s3_service.get_object(file_key)
+        
+        if csv_data is None:
+            return {
+                "error": f"Could not fetch {file_key} from S3",
+                "file_exists": False
+            }
+        
+        csv_string = csv_data.decode('utf-8')
+        csv_reader = csv.DictReader(io.StringIO(csv_string))
+        
+        fieldnames = csv_reader.fieldnames
+        if not fieldnames:
+            return {"error": "CSV has no column headers"}
+        
+        # Get first 5 rows as sample
+        sample_rows = []
+        for i, row in enumerate(csv_reader):
+            if i >= 5:
+                break
+            sample_rows.append(dict(row))
+        
+        # Try to get actual demand for today
+        today = date.today()
+        actual_demand_map = get_actual_demand_from_training_dataset(today)
+        
+        return {
+            "file_exists": True,
+            "columns": fieldnames,
+            "sample_rows": sample_rows,
+            "target_date": str(today),
+            "actual_demand_found": len(actual_demand_map),
+            "actual_demand_map": actual_demand_map,
+            "sample_hours": list(actual_demand_map.keys())[:10] if actual_demand_map else []
+        }
+        
+    except Exception as e:
+        import traceback
+        return {
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }
+
 @app.get("/api/forecast/latest")
 async def get_latest_forecast():
     """
     Fetch the latest forecast CSV from S3 and return formatted forecast data.
-    Returns forecast data with hour, predicted demand, and formatted timestamp.
+    Merges actual demand values from training_dataset when available.
+    Returns forecast data with hour, predicted demand, and actual demand (or N/A if not available).
     """
     try:
         # Fetch the CSV file from S3
@@ -109,7 +350,9 @@ async def get_latest_forecast():
         
         forecast_data = []
         first_time_str = None
+        forecast_date = None
         
+        # First pass: collect forecast data and determine the date
         for row in csv_reader:
             # Parse the time string
             time_str = row['time'].strip()
@@ -117,6 +360,10 @@ async def get_latest_forecast():
             # Store first time for timestamp
             if first_time_str is None:
                 first_time_str = time_str
+                try:
+                    forecast_date = datetime.strptime(time_str, "%Y-%m-%d %H:%M:%S").date()
+                except ValueError:
+                    pass
             
             try:
                 # Parse datetime (format: "2025-10-17 01:00:00")
@@ -133,10 +380,55 @@ async def get_latest_forecast():
             forecast_data.append({
                 "hour": hour,
                 "predicted": round(predicted),
-                "actual": round(predicted)  # Using predicted as actual for now since CSV doesn't have actual data
+                "actual": None  # Will be filled from training dataset
             })
         
-        # Find peak and low values
+        # Use today's date for fetching actual demand (not the forecast CSV date)
+        # This ensures we get today's actual demand values, even if the forecast is for a different date
+        today_date = date.today()
+        print(f"Forecast CSV date: {forecast_date}, Using today's date for actual demand: {today_date}")
+        
+        # Fetch actual demand values from training dataset
+        # Use today's date to get current actual demand values
+        print(f"\n{'='*60}")
+        print(f"FORECAST ENDPOINT: Fetching actual demand for today's date={today_date}")
+        print(f"  (Forecast CSV date was: {forecast_date})")
+        print(f"{'='*60}")
+        actual_demand_map = get_actual_demand_from_training_dataset(today_date)
+        
+        print(f"\nFORECAST ENDPOINT: Received actual_demand_map with {len(actual_demand_map)} entries")
+        if actual_demand_map:
+            print(f"  Sample actual demand hours: {sorted(list(actual_demand_map.keys()))[:10]}")
+            print(f"  Sample actual demand values: {[(k, actual_demand_map[k]) for k in sorted(list(actual_demand_map.keys()))[:5]]}")
+        
+        # Merge actual demand values with forecast data
+        merged_count = 0
+        not_found_count = 0
+        forecast_hours = [item['hour'] for item in forecast_data]
+        print(f"\nFORECAST ENDPOINT: Merging actual demand into {len(forecast_data)} forecast data points")
+        print(f"  Forecast hours: {sorted(forecast_hours)[:10]}...")
+        
+        for item in forecast_data:
+            hour = item['hour']
+            if hour in actual_demand_map and actual_demand_map[hour] is not None:
+                item['actual'] = actual_demand_map[hour]
+                merged_count += 1
+                if merged_count <= 5:
+                    print(f"  ✓ Merged hour {hour}: actual={actual_demand_map[hour]}")
+            else:
+                # Keep as None (frontend should handle this as N/A)
+                item['actual'] = None
+                not_found_count += 1
+                if not_found_count <= 5:
+                    print(f"  ✗ No actual data for hour {hour}")
+        
+        print(f"\nFORECAST ENDPOINT MERGE SUMMARY:")
+        print(f"  Total forecast hours: {len(forecast_data)}")
+        print(f"  Hours with actual demand merged: {merged_count}")
+        print(f"  Hours without actual demand: {not_found_count}")
+        print(f"{'='*60}\n")
+        
+        # Find peak and low values (only from predicted for now, since actual might be incomplete)
         peak_data = max(forecast_data, key=lambda x: x['predicted'])
         low_data = min(forecast_data, key=lambda x: x['predicted'])
         

@@ -3,13 +3,13 @@ import { Card } from '@/components/ui/card';
 interface HourlyData {
   hour: string;
   predicted: number;
-  actual: number;
-  error: number;
+  actual: number | null;
+  error: number | null;
 }
 
 interface HourlyTableProps {
   data: HourlyData[];
-  currentHour?: number;
+  currentHour?: number | undefined;
 }
 
 export default function HourlyTable({ data, currentHour }: HourlyTableProps) {
@@ -43,7 +43,7 @@ export default function HourlyTable({ data, currentHour }: HourlyTableProps) {
               <tr
                 key={row.hour}
                 className={`border-b border-border/50 ${
-                  globalIndex === currentHour
+                  currentHour !== undefined && globalIndex === currentHour
                     ? "bg-cyan-500/10 border-l-4 border-l-cyan-400"
                     : localIndex % 2 === 0
                     ? "bg-transparent"
@@ -58,10 +58,10 @@ export default function HourlyTable({ data, currentHour }: HourlyTableProps) {
                   {row.predicted.toLocaleString()}
                 </td>
                 <td className="px-4 py-3 text-sm text-muted-foreground text-right">
-                  {row.actual.toLocaleString()}
+                  {row.actual !== null ? row.actual.toLocaleString() : 'N/A'}
                 </td>
                 <td className="px-4 py-3 text-sm text-muted-foreground text-right">
-                  {row.error.toFixed(1)}%
+                  {row.error !== null ? `${row.error.toFixed(1)}%` : 'N/A'}
                 </td>
               </tr>
             );

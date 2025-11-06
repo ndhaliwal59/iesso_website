@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/card';
 interface ForecastData {
   hour: string;
   predicted: number;
-  actual: number;
+  actual: number | null;
 }
 
 interface ForecastChartProps {
@@ -46,6 +46,12 @@ export default function ForecastChart({ data, timestamp = "12:00 AM" }: Forecast
                 borderRadius: '8px',
                 color: '#fff'
               }}
+              formatter={(value: any, name: string) => {
+                if (value === null || value === undefined) {
+                  return ['N/A', name];
+                }
+                return [typeof value === 'number' ? value.toLocaleString() : value, name];
+              }}
             />
             <Legend wrapperStyle={{ color: '#9CA3AF' }} />
             <Line 
@@ -64,6 +70,7 @@ export default function ForecastChart({ data, timestamp = "12:00 AM" }: Forecast
               strokeWidth={2}
               name="Actual Demand"
               dot={false}
+              connectNulls={false}
             />
           </LineChart>
         </ResponsiveContainer>

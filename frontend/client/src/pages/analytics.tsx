@@ -11,7 +11,7 @@ import PredictedLow from '@/components/PredictedLow';
 interface ForecastDataPoint {
   hour: string;
   predicted: number;
-  actual: number;
+  actual: number | null;
 }
 
 interface ForecastResponse {
@@ -95,10 +95,10 @@ export default function Analytics() {
     hour: item.hour,
     predicted: item.predicted,
     actual: item.actual,
-    // Calculate error percentage, handling division by zero
-    error: item.actual !== 0 
+    // Calculate error percentage, handling division by zero and null values
+    error: item.actual !== null && item.actual !== 0 
       ? ((item.predicted - item.actual) / item.actual) * 100 
-      : 0
+      : null
   }));
 
   // Use sorted data for charts and calculations
@@ -122,6 +122,33 @@ export default function Analytics() {
   
   const isLoading = isLoadingForecast || isLoadingHourly;
   const error = forecastError || hourlyError;
+
+  // Calculate the current hour to highlight (one hour behind)
+  // If current time is 00:00, nothing will be highlighted
+  const getCurrentHourIndex = (): number | undefined => {
+    const now = new Date();
+    const currentHour = now.getHours();
+    
+    // If it's 00:00, return undefined so nothing is highlighted
+    if (currentHour === 0) {
+      return undefined;
+    }
+    
+    // Calculate previous hour (one hour behind)
+    const previousHour = currentHour - 1;
+    
+    // Find the index in sortedForecastData that matches this hour
+    // Match by extracting the hour part from the hour string (e.g., "01:00" -> 1, "23:00" -> 23)
+    const index = sortedForecastData.findIndex(item => {
+      const itemHour = parseInt(item.hour.split(':')[0], 10);
+      return itemHour === previousHour;
+    });
+    
+    // Return the index if found, otherwise undefined
+    return index >= 0 ? index : undefined;
+  };
+
+  const currentHourIndex = getCurrentHourIndex();
 
   return (
     <div className="min-h-screen bg-background">
@@ -161,7 +188,7 @@ export default function Analytics() {
 
           <ForecastChart data={sortedForecastData} timestamp={timestamp} />
           
-          <HourlyTable data={hourlyData} currentHour={9} />
+          <HourlyTable data={hourlyData} currentHour={currentHourIndex} />
 
           <SupplyBreakdown data={supplyData} />
         </div>
