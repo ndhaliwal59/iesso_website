@@ -7,6 +7,7 @@ import SupplyBreakdown from '@/components/SupplyBreakdown';
 import ImportsExports from '@/components/ImportsExports';
 import PeakForecast from '@/components/PeakForecast';
 import PredictedLow from '@/components/PredictedLow';
+import { getApiBaseUrl } from '@/lib/apiConfig';
 
 interface ForecastDataPoint {
   hour: string;
@@ -44,10 +45,12 @@ interface HourlyDataResponse {
 
 
 export default function Analytics() {
+  const apiBaseUrl = getApiBaseUrl();
+  
   const { data: forecastResponse, isLoading: isLoadingForecast, error: forecastError } = useQuery<ForecastResponse>({
-    queryKey: ['http://localhost:8000/api/forecast/latest'],
+    queryKey: [`${apiBaseUrl}/api/forecast/latest`],
     queryFn: async () => {
-      const response = await fetch('http://localhost:8000/api/forecast/latest');
+      const response = await fetch(`${apiBaseUrl}/api/forecast/latest`);
       if (!response.ok) {
         throw new Error('Failed to fetch forecast data');
       }
@@ -56,9 +59,9 @@ export default function Analytics() {
   });
 
   const { data: hourlyDataResponse, isLoading: isLoadingHourly, error: hourlyError } = useQuery<HourlyDataResponse>({
-    queryKey: ['http://localhost:8000/api/hourly-data/latest'],
+    queryKey: [`${apiBaseUrl}/api/hourly-data/latest`],
     queryFn: async () => {
-      const response = await fetch('http://localhost:8000/api/hourly-data/latest');
+      const response = await fetch(`${apiBaseUrl}/api/hourly-data/latest`);
       if (!response.ok) {
         throw new Error('Failed to fetch hourly data');
       }

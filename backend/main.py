@@ -16,9 +16,11 @@ app = FastAPI(
 )
 
 # Configure CORS to allow frontend requests
+# Allow localhost for development and all Render subdomains for production
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],  # Common Vite ports
+    allow_origins=["http://localhost:3000", "http://localhost:5173"],
+    allow_origin_regex=r"https://.*\.onrender\.com",  # Allow all Render subdomains
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
