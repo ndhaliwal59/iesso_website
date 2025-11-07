@@ -37,7 +37,7 @@ export default function Header() {
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                About the Model
+                About
               </span>
             </Link>
           </nav>

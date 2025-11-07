@@ -14,41 +14,9 @@ export default function About() {
             <h1 className="text-3xl md:text-4xl font-semibold text-card-foreground mb-4">
               About the Model
             </h1>
-            <p className="text-card-foreground leading-relaxed max-w-prose">
-            I used publicly available energy demand data from the IESO data repository to train a Temporal Fusion Transformer (TFT) model, which is well-suited for time-series forecasting. The dashboard is automated using AWS, where the model is retrained regularly and new data is collected through lambda. Forecasts are then updated every day providing an up-to-date predictions of Ontario’s electricity demand.
+            <p className="text-card-foreground leading-relaxed">
+              I used publicly available energy demand data from the IESO data repository to train a Temporal Fusion Transformer (TFT) model, which is well-suited for time-series forecasting. The dashboard is automated using AWS, where the model is retrained regularly and new data is collected through lambda. Forecasts are then updated every day providing an up-to-date predictions of Ontario's electricity demand.
             </p>
-          </Card>
-
-          <Card className="p-8 rounded-xl shadow-lg">
-            <div className="flex items-center gap-3 mb-4">
-              <Database className="w-6 h-6 text-cyan-400" />
-              <h2 className="text-2xl font-semibold text-card-foreground">Data Collection</h2>
-            </div>
-            <p className="text-card-foreground leading-relaxed mb-4">
-              Our model leverages comprehensive data sources to ensure accurate predictions:
-            </p>
-            <ul className="list-disc list-inside space-y-2 text-card-foreground">
-              <li>Historical IESO hourly demand data spanning multiple years</li>
-              <li>Weather data including temperature, humidity, and forecasts</li>
-              <li>Calendar features such as day of week, holidays, and seasonal patterns</li>
-              <li>Real-time supply mix information from various energy sources</li>
-            </ul>
-          </Card>
-
-          <Card className="p-8 rounded-xl shadow-lg">
-            <div className="flex items-center gap-3 mb-4">
-              <Cog className="w-6 h-6 text-cyan-400" />
-              <h2 className="text-2xl font-semibold text-card-foreground">Data Processing</h2>
-            </div>
-            <p className="text-card-foreground leading-relaxed mb-4">
-              Key preprocessing steps ensure data quality and model performance:
-            </p>
-            <ul className="list-disc list-inside space-y-2 text-card-foreground">
-              <li>Handling missing values through interpolation and forward-filling techniques</li>
-              <li>Feature engineering to create time-based and lag features</li>
-              <li>Normalization and scaling of numerical features for optimal model training</li>
-              <li>Outlier detection and treatment to improve prediction stability</li>
-            </ul>
           </Card>
 
           <Card className="p-8 rounded-xl shadow-lg">
@@ -57,11 +25,11 @@ export default function About() {
               <h2 className="text-2xl font-semibold text-card-foreground">Model Training</h2>
             </div>
             <p className="text-card-foreground leading-relaxed mb-4">
-              We employ advanced machine learning algorithms optimized for time-series forecasting:
+              View the <a href="https://www.kaggle.com/code/nishandhaliwal06/leso-baseline" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:text-cyan-300 underline">training notebook</a> for details on the model training process.
             </p>
             <div className="bg-muted/30 p-6 rounded-lg mb-4">
               <p className="text-card-foreground mb-2">
-                <strong>Primary Model:</strong> XGBoost Gradient Boosting
+                <strong>Primary Model:</strong> Temporal Fusion Transformer (TFT)
               </p>
               <p className="text-card-foreground">
                 <strong>Evaluation Metrics:</strong>
@@ -72,10 +40,6 @@ export default function About() {
                 <li>Mean Absolute Percentage Error (MAPE): ~1.2%</li>
               </ul>
             </div>
-            <p className="text-card-foreground leading-relaxed">
-              The model is retrained weekly with the latest data to maintain accuracy and adapt 
-              to changing consumption patterns.
-            </p>
           </Card>
 
           <Card className="p-8 rounded-xl shadow-lg">
@@ -88,7 +52,7 @@ export default function About() {
             </p>
             <div className="space-y-4">
               {[
-                { step: 1, title: 'Data Fetching', desc: 'Hourly retrieval of IESO data and weather forecasts' },
+                { step: 1, title: 'Data Fetching', desc: 'Hourly retrieval of IESO data using lambda' },
                 { step: 2, title: 'Preprocessing', desc: 'Feature engineering and data normalization' },
                 { step: 3, title: 'Model Inference', desc: 'Generate 24-hour demand predictions' },
                 { step: 4, title: 'Validation', desc: 'Compare predictions with actual demand for accuracy tracking' },
@@ -115,9 +79,8 @@ export default function About() {
               <h2 className="text-2xl font-semibold text-card-foreground">Future Improvements</h2>
             </div>
             <ul className="list-disc list-inside space-y-2 text-card-foreground">
-              <li>Enhanced renewable energy predictions with solar and wind generation forecasts</li>
-              <li>Temperature-based demand refinements for extreme weather events</li>
-              <li>Peak demand accuracy improvements through ensemble modeling techniques</li>
+              <li>Inclusion of weather forecasts and zone-specific demand data to refine local forecasting</li>
+              <li>Improved peak demand accuracy using a dedicated peak-demand forecasting model</li>
               <li>Integration of real-time grid congestion data for better load distribution</li>
               <li>Extended forecast horizon from 24 hours to 72 hours</li>
             </ul>
