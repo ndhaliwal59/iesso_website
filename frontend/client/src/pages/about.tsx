@@ -15,10 +15,7 @@ export default function About() {
               About the Model
             </h1>
             <p className="text-card-foreground leading-relaxed max-w-prose">
-              Our energy demand forecasting model predicts Ontario's hourly electricity demand 
-              for the next 24 hours with high accuracy. By analyzing historical consumption patterns, 
-              weather conditions, and calendar features, we provide reliable forecasts that help 
-              optimize energy distribution and planning.
+            I used publicly available energy demand data from the IESO data repository to train a Temporal Fusion Transformer (TFT) model, which is well-suited for time-series forecasting. The dashboard is automated using AWS, where the model is retrained regularly and new data is collected through lambda. Forecasts are then updated every day providing an up-to-date predictions of Ontario’s electricity demand.
             </p>
           </Card>
 

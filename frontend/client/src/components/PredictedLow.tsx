@@ -3,8 +3,8 @@ import { Card } from '@/components/ui/card';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 
 interface PredictedLowProps {
-  lowHour: string;
-  lowDemand: number;
+  lowHour?: string;
+  lowDemand?: number;
   sparklineData?: number[];
 }
 
@@ -23,14 +23,16 @@ export default function PredictedLow({ lowHour, lowDemand, sparklineData }: Pred
       <div className="space-y-4">
         <div data-testid="metric-low-hour">
           <p className="text-xs text-muted-foreground mb-1">Low Hour</p>
-          <p className="text-4xl font-bold text-blue-400">{lowHour}</p>
+          <p className="text-4xl font-bold text-blue-400">
+            {lowHour || '--'}
+          </p>
         </div>
 
         <div data-testid="metric-low-demand">
           <p className="text-xs text-muted-foreground mb-1">Low Demand</p>
           <p className="text-2xl font-semibold text-card-foreground">
-            {lowDemand.toLocaleString()}
-            <span className="text-sm text-muted-foreground ml-2">MW</span>
+            {lowDemand !== undefined ? lowDemand.toLocaleString() : '--'}
+            {lowDemand !== undefined && <span className="text-sm text-muted-foreground ml-2">MW</span>}
           </p>
         </div>
 

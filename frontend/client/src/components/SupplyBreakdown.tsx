@@ -8,10 +8,23 @@ interface SupplySource {
 }
 
 interface SupplyBreakdownProps {
-  data: SupplySource[];
+  data?: SupplySource[];
 }
 
 export default function SupplyBreakdown({ data }: SupplyBreakdownProps) {
+  if (!data || data.length === 0) {
+    return (
+      <Card className="p-6 md:p-8 rounded-xl bg-card border-card-border">
+        <h2 className="text-xl md:text-2xl font-medium text-card-foreground mb-6">
+          Supply Breakdown
+        </h2>
+        <div className="text-center text-muted-foreground py-8">
+          No data available
+        </div>
+      </Card>
+    );
+  }
+
   const total = data.reduce((sum, item) => sum + item.mw, 0);
   const chartData = data.map(item => ({
     name: item.source,

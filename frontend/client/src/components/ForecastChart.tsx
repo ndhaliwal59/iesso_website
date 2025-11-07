@@ -31,7 +31,15 @@ export default function ForecastChart({ data, timestamp = "12:00 AM" }: Forecast
             <XAxis 
               dataKey="hour" 
               stroke="#9CA3AF"
-              style={{ fontSize: '12px', fill: '#9CA3AF' }}
+              style={{ fontSize: '16px', fill: '#9CA3AF' }}
+              ticks={['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00']}
+              tickMargin={10}
+              tickFormatter={(value) => {
+                // Extract just the hour part (e.g., "00:00" -> "00", "03:00" -> "03")
+                if (!value) return '';
+                const [hours] = value.split(':');
+                return hours;
+              }}
             />
             <YAxis 
               domain={[10000, 'auto']}
@@ -75,10 +83,6 @@ export default function ForecastChart({ data, timestamp = "12:00 AM" }: Forecast
           </LineChart>
         </ResponsiveContainer>
       </div>
-
-      <p className="text-sm text-muted-foreground text-center mt-4">
-        Prediction generated at: {timestamp}
-      </p>
     </Card>
   );
 }

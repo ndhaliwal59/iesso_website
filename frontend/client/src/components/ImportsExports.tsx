@@ -2,12 +2,12 @@ import { ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 
 interface ImportsExportsProps {
-  imports: number;
-  exports: number;
+  imports?: number;
+  exports?: number;
 }
 
 export default function ImportsExports({ imports, exports }: ImportsExportsProps) {
-  const netFlow = exports - imports;
+  const netFlow = (exports !== undefined && imports !== undefined) ? exports - imports : 0;
 
   return (
     <Card className="p-6 md:p-8 rounded-xl bg-card border-card-border">
@@ -22,8 +22,8 @@ export default function ImportsExports({ imports, exports }: ImportsExportsProps
             <span className="text-xs text-muted-foreground font-medium">Hourly Imports</span>
           </div>
           <p className="text-2xl md:text-3xl font-semibold text-card-foreground">
-            {imports.toLocaleString()}
-            <span className="text-sm text-muted-foreground ml-2">MW</span>
+            {imports !== undefined ? imports.toLocaleString() : '--'}
+            {imports !== undefined && <span className="text-sm text-muted-foreground ml-2">MW</span>}
           </p>
         </div>
 
@@ -33,8 +33,8 @@ export default function ImportsExports({ imports, exports }: ImportsExportsProps
             <span className="text-xs text-muted-foreground font-medium">Hourly Exports</span>
           </div>
           <p className="text-2xl md:text-3xl font-semibold text-card-foreground">
-            {exports.toLocaleString()}
-            <span className="text-sm text-muted-foreground ml-2">MW</span>
+            {exports !== undefined ? exports.toLocaleString() : '--'}
+            {exports !== undefined && <span className="text-sm text-muted-foreground ml-2">MW</span>}
           </p>
         </div>
       </div>
@@ -43,7 +43,13 @@ export default function ImportsExports({ imports, exports }: ImportsExportsProps
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">Net Flow</span>
           <span className={`text-xl md:text-2xl font-bold ${netFlow > 0 ? 'text-red-500' : 'text-green-500'}`}>
-            {netFlow > 0 ? '-' : '+'}{Math.abs(netFlow).toLocaleString()} MW
+            {imports !== undefined && exports !== undefined ? (
+              <>
+                {netFlow > 0 ? '-' : '+'}{Math.abs(netFlow).toLocaleString()} MW
+              </>
+            ) : (
+              '--'
+            )}
           </span>
         </div>
       </div>

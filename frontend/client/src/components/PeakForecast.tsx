@@ -3,8 +3,8 @@ import { Card } from '@/components/ui/card';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 
 interface PeakForecastProps {
-  peakHour: string;
-  peakDemand: number;
+  peakHour?: string;
+  peakDemand?: number;
   sparklineData?: number[];
 }
 
@@ -23,14 +23,16 @@ export default function PeakForecast({ peakHour, peakDemand, sparklineData }: Pe
       <div className="space-y-4">
         <div data-testid="metric-peak-hour">
           <p className="text-xs text-muted-foreground mb-1">Peak Hour</p>
-          <p className="text-4xl font-bold text-cyan-400">{peakHour}</p>
+          <p className="text-4xl font-bold text-cyan-400">
+            {peakHour || '--'}
+          </p>
         </div>
 
         <div data-testid="metric-peak-demand">
           <p className="text-xs text-muted-foreground mb-1">Peak Demand</p>
           <p className="text-2xl font-semibold text-card-foreground">
-            {peakDemand.toLocaleString()}
-            <span className="text-sm text-muted-foreground ml-2">MW</span>
+            {peakDemand !== undefined ? peakDemand.toLocaleString() : '--'}
+            {peakDemand !== undefined && <span className="text-sm text-muted-foreground ml-2">MW</span>}
           </p>
         </div>
 

@@ -42,15 +42,6 @@ interface HourlyDataResponse {
   file_key: string;
 }
 
-// Fallback supply data
-const fallbackSupplyData: SupplySource[] = [
-  { source: 'Nuclear', mw: 7320, color: '#8B5CF6' },
-  { source: 'Gas', mw: 5215, color: '#EF4444' },
-  { source: 'Wind', mw: 2782, color: '#10B981' },
-  { source: 'Hydro', mw: 2788, color: '#3B82F6' },
-  { source: 'Solar', mw: 82, color: '#FBBF24' },
-  { source: 'Biofuel', mw: 20, color: '#84CC16' },
-];
 
 export default function Analytics() {
   const { data: forecastResponse, isLoading: isLoadingForecast, error: forecastError } = useQuery<ForecastResponse>({
@@ -109,16 +100,16 @@ export default function Analytics() {
     ? { hour: forecastResponse.low.hour, predicted: forecastResponse.low.demand }
     : (sortedForecastData.length > 0 
         ? sortedForecastData.reduce((min, item) => item.predicted < min.predicted ? item : min)
-        : { hour: '00:00', predicted: 0 });
+        : { hour: undefined, predicted: undefined });
 
-  const peakHour = forecastResponse?.peak?.hour || '17:00';
-  const peakDemand = forecastResponse?.peak?.demand || 15740;
-  const timestamp = forecastResponse?.timestamp || '12:00 AM';
+  const peakHour = forecastResponse?.peak?.hour;
+  const peakDemand = forecastResponse?.peak?.demand;
+  const timestamp = forecastResponse?.timestamp;
 
-  // Get supply breakdown and import/export data from API or use fallbacks
-  const supplyData = hourlyDataResponse?.supply_breakdown || fallbackSupplyData;
-  const imports = hourlyDataResponse?.imports || 173;
-  const exports = hourlyDataResponse?.exports || 1668;
+  // Get supply breakdown and import/export data from API
+  const supplyData = hourlyDataResponse?.supply_breakdown;
+  const imports = hourlyDataResponse?.imports;
+  const exports = hourlyDataResponse?.exports;
   
   const isLoading = isLoadingForecast || isLoadingHourly;
   const error = forecastError || hourlyError;
@@ -161,7 +152,7 @@ export default function Analytics() {
           </p>
           {error && (
             <p className="text-red-400 text-sm mt-2">
-              Error loading data. Using fallback data.
+              Error loading data.
             </p>
           )}
           {isLoading && (
@@ -186,7 +177,7 @@ export default function Analytics() {
             <ImportsExports imports={imports} exports={exports} />
           </div>
 
-          <ForecastChart data={sortedForecastData} timestamp={timestamp} />
+          <ForecastChart data={sortedForecastData} timestamp={timestamp || '--'} />
           
           <HourlyTable data={hourlyData} currentHour={currentHourIndex} />
 
