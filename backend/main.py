@@ -19,7 +19,11 @@ app = FastAPI(
 # Allow localhost for development and all Render subdomains for production
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],
+    allow_origins=[
+        "http://localhost:3000", 
+        "http://localhost:5173",
+        "https://ontario-energy-forecast.onrender.com",  # Frontend URL
+    ],
     allow_origin_regex=r"https://.*\.onrender\.com",  # Allow all Render subdomains
     allow_credentials=True,
     allow_methods=["*"],
