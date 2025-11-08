@@ -35,9 +35,9 @@ export default function About() {
                 <strong>Evaluation Metrics:</strong>
               </p>
               <ul className="list-disc list-inside mt-2 space-y-1 text-card-foreground ml-4">
-                <li>Mean Absolute Error (MAE): ~150 MW</li>
-                <li>Root Mean Square Error (RMSE): ~220 MW</li>
-                <li>Mean Absolute Percentage Error (MAPE): ~1.2%</li>
+                <li>Mean Absolute Error (MAE): ~307 MW</li>
+                <li>Root Mean Square Error (RMSE): ~382 MW</li>
+                <li>Mean Absolute Percentage Error (MAPE): ~2.13%</li>
               </ul>
             </div>
           </Card>
