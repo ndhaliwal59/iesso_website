@@ -95,6 +95,17 @@ async def test_s3():
     
     return result
 
+def get_today_ontario_date() -> date:
+    """
+    Get today's date in Ontario/Eastern timezone.
+    Ontario is UTC-5 (EST) or UTC-4 (EDT), so we subtract 5 hours from UTC.
+    This ensures we get the correct date regardless of server timezone (e.g., UTC on Render).
+    """
+    utc_now = datetime.utcnow()
+    # Subtract 5 hours to get Eastern time
+    ontario_time = utc_now - timedelta(hours=5)
+    return ontario_time.date()
+
 def get_actual_demand_from_training_dataset(target_date: Optional[date] = None) -> Dict[str, Optional[float]]:
     """
     Fetch actual demand values from the training dataset in S3.
@@ -111,9 +122,9 @@ def get_actual_demand_from_training_dataset(target_date: Optional[date] = None) 
     actual_demand_map = {}
     
     try:
-        # Use today's date if not specified
+        # Use today's date in Ontario timezone if not specified
         if target_date is None:
-            target_date = date.today()
+            target_date = get_today_ontario_date()
         
         print(f"Fetching actual demand for date: {target_date}")
         
@@ -389,10 +400,11 @@ async def get_latest_forecast():
                 "actual": None  # Will be filled from training dataset
             })
         
-        # Use today's date for fetching actual demand (not the forecast CSV date)
+        # Use today's date in Ontario timezone for fetching actual demand (not the forecast CSV date)
         # This ensures we get today's actual demand values, even if the forecast is for a different date
-        today_date = date.today()
-        print(f"Forecast CSV date: {forecast_date}, Using today's date for actual demand: {today_date}")
+        # Using Ontario timezone accounts for Render using UTC (subtract 5 hours)
+        today_date = get_today_ontario_date()
+        print(f"Forecast CSV date: {forecast_date}, Using today's date (Ontario time) for actual demand: {today_date}")
         
         # Fetch actual demand values from training dataset
         # Use today's date to get current actual demand values
