@@ -109,7 +109,7 @@ def get_today_ontario_date() -> date:
 def get_actual_demand_from_training_dataset(target_date: Optional[date] = None) -> Dict[str, Optional[float]]:
     """
     Fetch actual demand values from the training dataset in S3.
-    Fetches from the specific file: training_dataset/combined_demand_2002_2025.csv
+    Fetches from the specific file: training_dataset/daily.csv
     Uses the "Ontario Demand" column and filters for target date and previous day (to handle midnight crossover).
     Returns a dictionary mapping hour strings (HH:MM) to actual demand values (or None if not available).
     
@@ -129,7 +129,7 @@ def get_actual_demand_from_training_dataset(target_date: Optional[date] = None) 
         print(f"Fetching actual demand for date: {target_date}")
         
         # Fetch the specific CSV file from S3
-        file_key = "training_dataset/combined_demand_2002_2025.csv"
+        file_key = "training_dataset/daily.csv"
         csv_data = s3_service.get_object(file_key)
         
         if csv_data is None:
@@ -302,7 +302,7 @@ async def test_actual_demand():
     Returns information about the CSV structure and sample data.
     """
     try:
-        file_key = "training_dataset/combined_demand_2002_2025.csv"
+        file_key = "training_dataset/daily.csv"
         csv_data = s3_service.get_object(file_key)
         
         if csv_data is None:
