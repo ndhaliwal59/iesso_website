@@ -13,6 +13,23 @@ interface ForecastChartProps {
 }
 
 export default function ForecastChart({ data, timestamp = "12:00 AM" }: ForecastChartProps) {
+  // Calculate min and max values from the data to set a tighter y-axis range
+  const allValues = data.flatMap(d => [d.predicted, d.actual].filter(v => v !== null && v !== undefined)) as number[];
+  const minValue = allValues.length > 0 ? Math.min(...allValues) : 0;
+  const maxValue = allValues.length > 0 ? Math.max(...allValues) : 10000;
+  const range = maxValue - minValue;
+  // Add 5% padding on top and bottom for better visualization
+  const padding = range > 0 ? range * 0.05 : maxValue * 0.1;
+  // Round to nearest thousand: round min down, max up
+  const yAxisMin = Math.max(0, Math.floor((minValue - padding) / 1000) * 1000);
+  const yAxisMax = Math.ceil((maxValue + padding) / 1000) * 1000;
+  
+  // Generate ticks every 1,000 for visual marks, but only label every 2,000
+  const yAxisTicks: number[] = [];
+  for (let i = yAxisMin; i <= yAxisMax; i += 1000) {
+    yAxisTicks.push(i);
+  }
+
   return (
     <Card className="p-6 md:p-8 rounded-xl bg-card border-card-border">
       <div className="mb-6">
@@ -42,10 +59,18 @@ export default function ForecastChart({ data, timestamp = "12:00 AM" }: Forecast
               }}
             />
             <YAxis 
-              domain={[10000, 'auto']}
+              domain={[yAxisMin, yAxisMax]}
+              ticks={yAxisTicks}
               stroke="#9CA3AF"
               style={{ fontSize: '12px', fill: '#9CA3AF' }}
               label={{ value: 'MW', angle: -90, position: 'insideLeft', style: { fill: '#9CA3AF' } }}
+              tickFormatter={(value) => {
+                // Only show labels for multiples of 2,000, hide labels for odd thousands
+                if (value % 2000 === 0) {
+                  return Math.round(value).toLocaleString();
+                }
+                return '';
+              }}
             />
             <Tooltip 
               contentStyle={{ 
@@ -78,7 +103,7 @@ export default function ForecastChart({ data, timestamp = "12:00 AM" }: Forecast
               strokeWidth={2}
               name="Actual Demand"
               dot={false}
-              connectNulls={false}
+              connectNulls={true}
             />
           </LineChart>
         </ResponsiveContainer>
