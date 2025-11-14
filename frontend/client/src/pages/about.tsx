@@ -81,7 +81,6 @@ export default function About() {
             <ul className="list-disc list-inside space-y-2 text-card-foreground">
               <li>Inclusion of weather forecasts and zone-specific demand data to refine local forecasting</li>
               <li>Improved peak demand accuracy using a dedicated peak-demand forecasting model</li>
-              <li>Integration of real-time grid congestion data for better load distribution</li>
               <li>Extended forecast horizon from 24 hours to 72 hours</li>
             </ul>
           </Card>
